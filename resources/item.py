@@ -4,6 +4,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 
 from db import items
+from schemas import ItemSchema, ItemUpdateSchema
 
 blp = Blueprint("Items", "items", description="Operations on items")
 
@@ -23,12 +24,8 @@ class Item(MethodView):
         except KeyError:
             abort(404, message="Item not found")
 
-    def put(self, item_id):
-        item_data = request.get_json()
-
-        if "name" not in item_data or "price" not in item_data:
-            abort(400, message="Bad request. Ensure 'name' and 'price' are included in the JSON payload.")
-
+    @blp.arguments(ItemUpdateSchema)
+    def put(self, item_data, item_id):
         try:
             item = items[item_id]
             item.update(item_data)
@@ -42,15 +39,9 @@ class ItemList(MethodView):
     def get(self):
         return {"items": list(items.values())}
 
-    def post(self):
-        item_data = request.get_json()
-
-        # Comprobamos si el json de petición tiene todos los valores.
-        if ("name" not in item_data
-                or "price" not in item_data
-                or "store_id" not in item_data):
-            abort(400, message="Bad request. Ensure 'name', 'price' and 'store_id' are included in the JSON payload.")
-
+    @blp.arguments(ItemSchema)
+    # Validacion de campos se hace a través de Marshmallow con el schema
+    def post(self, item_data):
         # Comprobamos si el item existe.
         for item in items.values():
             if item_data["name"] == item["name"] and item_data["store_id"] == item["store_id"]:
